@@ -17,7 +17,50 @@ $(document).ready(function () {
             { data: "acciones" }
         ],
         responsive: true,
-        language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json" }
+        language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json" },
+
+        // 🟡 Validación visual de días
+        createdRow: function (row, data, dataIndex) {
+            if (data.tipo && data.tipo.toLowerCase().includes("vacaciones")) {
+                // ✅ Corregido: nombre del archivo del controlador (vacaciones.php)
+                $.ajax({
+                    url: "../../controller/vacacion.php?op=consultar_dias_restantes",
+                    type: "POST",
+                    data: { id_empleado: data.id_empleado },
+                    dataType: "json",
+                    success: function (res) {
+                        if (res.status === "success") {
+                            const restantes = parseInt(res.dias_restantes);
+                            const solicitados = parseInt(data.dias_habiles);
+
+                            // Tooltip informativo
+                            const tooltip = `Solicitó ${solicitados} día(s) — Tiene ${restantes} disponible(s)`;
+
+                            // Igual a saldo disponible → Amarillo
+                            if (solicitados === restantes) {
+                                $("td", row).eq(5)
+                                    .addClass("bg-warning text-dark fw-bold")
+                                    .attr("title", tooltip);
+                            }
+
+                            // Excede saldo → Rojo
+                            if (solicitados > restantes) {
+                                $("td", row).eq(5)
+                                    .addClass("bg-danger text-white fw-bold")
+                                    .attr("title", tooltip);
+                            }
+
+                            // Aún tiene días → Verde tenue
+                            if (solicitados < restantes) {
+                                $("td", row).eq(5)
+                                    .addClass("bg-success-subtle text-success fw-bold")
+                                    .attr("title", tooltip);
+                            }
+                        }
+                    }
+                });
+            }
+        }
     });
 
     // 🔹 Ver detalle
@@ -32,7 +75,6 @@ $(document).ready(function () {
             success: function (data) {
                 if (data.status === "success") {
                     let s = data.solicitud;
-                   // 🟢 Banner dinámico
                     let banner = $("#detalleBanner");
                     banner.show();
 
@@ -40,40 +82,40 @@ $(document).ready(function () {
                     let clase = "alert-info";
 
                     switch (s.estado.toLowerCase()) {
-    case "en proceso":
-    case "pendiente":
-        mensaje = `🔔 Solicitud de ${s.tipo.toLowerCase()} — pendiente de autorización`;
-        clase = "alert-info";
-        $("#acciones_jefe").show();
-        break;
+                        case "en proceso":
+                        case "pendiente":
+                            mensaje = `🔔 Solicitud de ${s.tipo.toLowerCase()} — pendiente de autorización`;
+                            clase = "alert-info";
+                            $("#acciones_jefe").show();
+                            break;
 
-    case "autorizado":
-        mensaje = `✅ Solicitud de ${s.tipo.toLowerCase()} autorizada`;
-        clase = "alert-success";
-        $("#acciones_jefe").hide();
-        break;
+                        case "autorizado":
+                            mensaje = `✅ Solicitud de ${s.tipo.toLowerCase()} autorizada`;
+                            clase = "alert-success";
+                            $("#acciones_jefe").hide();
+                            break;
 
-    case "rechazado":
-        mensaje = `❌ Solicitud de ${s.tipo.toLowerCase()} rechazada`;
-        clase = "alert-danger";
-        $("#acciones_jefe").hide();
-        break;
+                        case "rechazado":
+                            mensaje = `❌ Solicitud de ${s.tipo.toLowerCase()} rechazada`;
+                            clase = "alert-danger";
+                            $("#acciones_jefe").hide();
+                            break;
 
-    default:
-        mensaje = `ℹ️ Solicitud de ${s.tipo.toLowerCase()}`;
-        clase = "alert-secondary";
-        $("#acciones_jefe").hide();
-}
+                        default:
+                            mensaje = `ℹ️ Solicitud de ${s.tipo.toLowerCase()}`;
+                            clase = "alert-secondary";
+                            $("#acciones_jefe").hide();
+                    }
 
                     banner.removeClass().addClass(`alert text-center fw-bold ${clase}`).text(mensaje);
 
-                    // Mostrar seccion permiso
                     if (s.tipo && s.tipo.toLowerCase().includes("permiso")) {
                         $("#seccionPermiso").show();
                     } else {
                         $("#seccionPermiso").hide();
                         $("#tipo_permiso").val("");
                     }
+
                     $("#det_id").val(s.id_solicitud);
                     $("#det_empleado").text(s.empleado);
                     $("#det_tipo").text(s.tipo);
@@ -85,15 +127,6 @@ $(document).ready(function () {
                         .removeClass().addClass("badge bg-" + (s.estado === "En proceso" ? "info" : s.estado === "Autorizado" ? "success" : "danger"));
 
                     $("#modalDetalle").data("id", s.id_solicitud);
-
-                    // Mostrar o esconder sección según tipo
-                    if (s.tipo === "Permiso") {
-                        $("#seccionPermiso").show();
-                    } else {
-                        $("#seccionPermiso").hide();
-                        $("#tipo_permiso").val("");
-                    }
-
                     $("#observaciones_jefe").val("");
                     $("#modalDetalle").modal("show");
                 } else {
@@ -106,9 +139,9 @@ $(document).ready(function () {
         });
     });
 
-    // Autorizar solicitud
+    // 🔸 Autorizar
     $("#btnAutorizar").on("click", function () {
-        const id = $("#det_id").val(); // ✅ ahora obtiene el valor del input oculto
+        const id = $("#det_id").val();
         const observaciones = $("#observaciones_jefe").val();
         const tipo_permiso = $("#tipo_permiso").val();
 
@@ -133,7 +166,7 @@ $(document).ready(function () {
         });
     });
 
-    // Rechazar solicitud
+    // 🔸 Rechazar
     $("#btnRechazar").on("click", function () {
         const id = $("#det_id").val();
         const observaciones = $("#observaciones_jefe").val();
@@ -170,5 +203,4 @@ $(document).ready(function () {
             }
         });
     });
-
 });

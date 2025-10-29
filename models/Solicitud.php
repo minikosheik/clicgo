@@ -150,7 +150,7 @@ class Solicitud extends Conectar {
                 s.tipo,
                 CONVERT(VARCHAR(10), s.fecha_inicio, 103) AS fecha_inicio,
                 CONVERT(VARCHAR(10), s.fecha_fin, 103) AS fecha_fin,
-                DATEDIFF(DAY, s.fecha_inicio, s.fecha_fin) + 1 AS dias_habiles,
+                s.dias_habiles, -- ✅ usar el valor real calculado por el SP
                 s.motivo,
                 s.estado
             FROM solicitudes s

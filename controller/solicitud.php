@@ -147,6 +147,7 @@ switch ($_GET["op"]) {
 
             $data[] = [
                 "id_solicitud" => $row["id_solicitud"],
+                "id_empleado"  => $row["id_empleado"],
                 "empleado"     => $row["empleado"],
                 "tipo"         => $row["tipo"],
                 "fecha_inicio" => $row["fecha_inicio"],
@@ -193,6 +194,15 @@ switch ($_GET["op"]) {
             $tipo_permiso,
             $id_jefe_autoriza
         );
+
+        // 🚨 Si el modelo detectó exceso de días o error, detener aquí
+        if ($resultado["status"] === "error") {
+            echo json_encode([
+                "status" => "error",
+                "message" => $resultado["message"]
+            ]);
+            exit;
+        }
 
         // === Enviar correo al usuario ===
         if ($resultado && isset($resultado["correo_empleado"])) {
